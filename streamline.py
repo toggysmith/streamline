@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import click
 import pathlib
 from pathlib import Path
