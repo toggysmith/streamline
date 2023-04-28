@@ -139,7 +139,9 @@ https://user-images.githubusercontent.com/61121030/235254835-e15898c8-a5c0-42f2-
     <img src="https://user-images.githubusercontent.com/61121030/235249968-86312181-365d-432a-b722-cd8424f68601.png" align="center" />
 </picture>
 
-<br />
+# Technical Details
+
+Streamline is built using Python and [Click](https://click.palletsprojects.com) which is a wonderful little Python package for creating beautiful command line interfaces.
 
 <a href="https://toggysmith.com">
   <picture>
