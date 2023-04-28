@@ -3,9 +3,11 @@
 
 # Overview
 
-**Streamline** is a C++ project generation tool that can be run on the command-line to quickly set up new C++ projects.
+> "Quality is not an act, it is a habit." — Aristole
 
-It automatically generates new projects according to [The Pitchfork Layout](https://github.com/vector-of-bool/pitchfork) and makes testing and documentation generation easier.
+Most people would say that regularly testing your code and documenting it are good habits to get into. C++ has a certain level of friction though that makes it hard to get into that habit when compared to other languages which provide first-class support for testing and documentation. The truth is that it takes effort to set up a testing framework like Google Test and a documentation generator like Doxygen for *every* small project you make so it's often tempting to just ignore these and start coding away.
+
+This is where **Streamline** comes in: create new C++ projects with a [solid codebase layout](https://github.com/vector-of-bool/pitchfork), testing, and documentation generation in a matter of seconds. Streamline generates scripts for building, testing, and documentation when it creates a new project so you're not locked into Streamline and anyone can approach your project like a regular CMake project.
 
 # Run locally
 
