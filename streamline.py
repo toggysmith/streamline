@@ -134,12 +134,12 @@ build""")
     # Add Doxygen
 
 @cli.command()
-@click.option("--release", is_flag=True)
-def build(release):
-    if release:
-        run_build_release_py()
-    else:
+@click.option("--debug/--release", default=True)
+def build(debug):
+    if debug:
         run_build_debug_py()
+    else:
+        run_build_release_py()
 
 def run_build_debug_py():
     # Check that `build_debug.py` exists
