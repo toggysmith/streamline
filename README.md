@@ -1,5 +1,5 @@
 <h1 align="center">Streamline</h1>
-<p align="center">A command-line project generation tool for creating CMake-based C++ projects faster.</p>
+<p align="center">A command-line project generation tool for streamlining the creation of new CMake-based C++ projects.</p>
 
 # Overview
 
