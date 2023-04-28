@@ -425,7 +425,8 @@ DOT_CLEANUP            = YES"""
 @click.option("--name", default=Path.cwd().name, help="The name of the project.")
 @click.option("--edition", type=click.Choice(["98", "11", "14", "17", "20", "23", "26"]), default="17", help="The edition (version) of C++ to use.")
 @click.option("--docs", type=click.Choice(["none", "doxygen"]), help="The documentation generator to use.")
-def init(name, edition, docs):
+@click.option("--tests", type=click.Choice(["none", "gtest"]), help="The testing framework to use.")
+def init(name, edition, docs, tests):
     # Check that the project name is valid
     valid_characters = [c for c in name if c.islower() or c.isdigit() or c=='-' or c=='_']
 
@@ -444,13 +445,16 @@ def init(name, edition, docs):
     src_directory = Path(current_directory, "src")
     tools_directory = Path(current_directory, "tools")
 
-    Path(current_directory, "build").mkdir() # Build output, has debug and release folders
     src_directory.mkdir() # Source code / header files
-    Path(current_directory, "tests").mkdir() # Hold test files
     Path(current_directory, "external").mkdir() # Hold third-party libraries
     Path(current_directory, "data").mkdir() # Hold non-code files
     tools_directory.mkdir() # Hold scripts for project management (e.g. build, test, docs)
-    
+    tests_directory = Path(current_directory, "tests")
+
+    if tests != "none":
+        if tests == "gtest":
+            tests_directory.mkdir() # Hold test files
+
     if docs != "none":
         if docs == "doxygen":
             with (tools_directory / "Doxyfile").open("w", encoding="utf-8") as f:
@@ -469,20 +473,63 @@ main() {
 }
 """)
 
-    # Create `CMakeLists.txt`
+    # Create `src/CMakeLists.txt`
     with (src_directory / "CMakeLists.txt").open("w", encoding="utf-8") as f:
-        f.writelines(f"""cmake_minimum_required(VERSION 3.1)
+        f.writelines(f"""cmake_minimum_required(VERSION 3.24)
 
 project({name} VERSION 1.0
              LANGUAGES CXX)
 
-add_executable(out main.cpp)
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "*.cpp")
+
+add_executable(out ${{sources}})
 
 set_target_properties(out PROPERTIES
     CXX_STANDARD {edition}
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )""")
+
+    # Create `tests/CMakeLists.txt`
+    if tests == "gtest":
+        with (tests_directory / "CMakeLists.txt").open("w", encoding="utf-8") as f:
+            f.writelines(f"""cmake_minimum_required(VERSION 3.24)
+
+    project({name} VERSION 1.0
+                LANGUAGES CXX)
+
+    cmake_policy(SET CMP0135 NEW)
+
+    include(FetchContent)
+    FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    )
+
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    enable_testing()
+
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "*.cpp" "../src/*.cpp")
+    list(FILTER sources EXCLUDE REGEX "main.cpp")
+    add_executable(test_runner ${{sources}})
+
+    set_target_properties(test_runner PROPERTIES
+        CXX_STANDARD {edition}
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+    )
+
+    target_include_directories(test_runner PRIVATE "../src")
+    target_link_libraries(
+    test_runner
+    GTest::gtest_main
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(test_runner)
+    """)
     
     # Create `build_debug.py`
     with (tools_directory / "build_debug.py").open("w", encoding="utf-8") as f:
@@ -532,10 +579,33 @@ directory_of_script = Path(__file__).parent.resolve()
 subprocess.call(["../build/debug/out"], cwd=directory_of_script)
 """)
 
+    # Create `build_tests.py`
+    if tests == "gtest":
+        with (tools_directory / "build_tests.py").open("w", encoding="utf-8") as f:
+            f.writelines("""import pathlib
+from pathlib import Path
+import subprocess
+
+directory_of_script = Path(__file__).parent.resolve()
+
+subprocess.call(["cmake", "-S", "../tests", "-B", "../build/test_runner"], cwd=directory_of_script)
+subprocess.call(["cmake", "--build", "../build/test_runner"], cwd=directory_of_script)""")
+
+    # Create `test.py`
+    if tests == "gtest":
+        with (tools_directory / "test.py").open("w", encoding="utf-8") as f:
+            f.writelines("""import pathlib
+from pathlib import Path
+import subprocess
+import sys
+
+directory_of_script = Path(__file__).parent.resolve()
+
+subprocess.call(["../build/test_runner/test_runner"], cwd=directory_of_script)""")
+
     # Create `.gitignore`
     with (current_directory / ".gitignore").open("w", encoding="utf-8") as f:
-        f.writelines(""".streamline
-build""")
+        f.writelines("""build""")
 
     success("created new project")
 
@@ -552,7 +622,7 @@ def run_build_debug_py():
     build_debug_py = Path(".") / "tools/build_debug.py"
 
     if not build_debug_py.exists():
-        error("could not find `build_debug.py` in `./tools/build_debug.py`")
+        error("could not find `build_debug.py` in `./tools`")
         return False
     
     # Run `build_debug.py`
@@ -567,7 +637,7 @@ def run_build_release_py():
     build_release_py = Path(".") / "tools/build_release.py"
 
     if not build_release_py.exists():
-        error("could not find `build_release.py` in `./tools/build_release.py`")
+        error("could not find `build_release.py` in `./tools`")
         return False
     
     # Run `build_release.py`
@@ -582,7 +652,7 @@ def run_run_py():
     run_py = Path(".") / "tools/run.py"
 
     if not run_py.exists():
-        error("could not find `run.py` in `./tools/run.py`")
+        error("could not find `run.py` in `./tools`")
         return
     
     # Run `run.py`
@@ -607,7 +677,7 @@ def docs(open):
     build_docs_py = Path(".") / "tools/build_docs.py"
 
     if not build_docs_py.exists():
-        error("could not find `build_docs.py` in `./tools/build_docs.py`")
+        error("could not find `build_docs.py` in `./tools`")
         return False
     
     info("generating documentation")
@@ -620,6 +690,41 @@ def docs(open):
     # Open the documentation if requested
     if open:
         webbrowser.open("file://" + str((Path(".") / "docs/html/index.html").absolute()))
+
+@cli.command()
+def test():
+    # Check that there are tests
+    contents_of_tests_directory = list(Path("tests").iterdir())
+    
+    if len(contents_of_tests_directory) <= 1: # I.e. it's just CMakeLists.txt
+        error("no tests exist to run")
+        return
+    
+    # Check that `build_tests.py` exists
+    build_tests_py = Path(".") / "tools/build_tests.py"
+
+    if not build_tests_py.exists():
+        error("could not find `build_tests.py` in `./tools`")
+        return False
+    
+    info("building tests")
+
+    # Run `build_tests.py`
+    subprocess.call([sys.executable, build_tests_py])
+
+    success("tests built")
+
+    # Check that `test.py` exists
+    test_py = Path(".") / "tools/test.py"
+
+    if not test_py.exists():
+        error("could not find `test.py` in `./tools`")
+        return False
+    
+    info("running tests")
+
+    # Run `test.py`
+    subprocess.call([sys.executable, test_py])
 
 if __name__ == "__main__":
     cli()
