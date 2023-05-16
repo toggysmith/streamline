@@ -1,7 +1,4 @@
-<h1 align="center">Streamline</h1>
-<p align="center">A command-line project generation tool for streamlining the creation of new CMake-based C++ projects.</p>
-
-# Overview
+# <img src=".github/assets/banner.svg" width="100%" />
 
 > "Quality is not an act, it is a habit." — Aristole
 
