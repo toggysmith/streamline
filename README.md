@@ -124,10 +124,6 @@ streamline docs
 streamline docs --open
 ```
 
-# Demo
-
-https://user-images.githubusercontent.com/61121030/235254835-e15898c8-a5c0-42f2-b4bc-82f583983341.mov
-
 # Motivation
 
 **Streamline** was designed to streamline setting up the following three things:
